@@ -9,6 +9,7 @@
 #include <cassert>
 #include <dxgidebug.h>
 #include <dxcapi.h>
+#include <wrl.h>
 #include "Vector4.h"
 #include "Vector2.h"
 #include "Matrix4x4.h"
@@ -17,6 +18,8 @@
 #include "externals/imgui/imgui_impl_dx12.h"
 #include "externals/imgui/imgui_impl_win32.h"
 #include "externals/DirectXTex/DirectXTex.h"
+
+#include "Particle.hlsli"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -29,6 +32,11 @@ struct Transform {
 	Vector3 scale;
 	Vector3 rotate;
 	Vector3 translate;
+};
+
+struct TransformationMatrix {
+	Matrix4x4 wvp;
+	Matrix4x4 world;
 };
 
 std::wstring ConvertString(const std::string& str)
@@ -346,7 +354,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//カーソル
 	wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
 
-
 	//ウィンドウクラスを登録する
 	RegisterClass(&wc);
 
@@ -358,10 +365,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//ウィンドウサイズを表す構造体にクライアント領域を入れる
 	RECT wrc = { 0,0,kClientWidht ,kClientHeight };
 
-
 	//クライアント領域をもとに実際のサイズにwrcを変更してもらう
 	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
-
 
 	//ウィンドウの生成
 	HWND hwnd = CreateWindow(
@@ -387,7 +392,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		debugController->SetEnableGPUBasedValidation(TRUE);
 	}
 #endif
-
 
 	//ウィンドウを表示する
 	ShowWindow(hwnd, SW_SHOW);
@@ -443,7 +447,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			break;
 		}
 	}
-
 	assert(device != nullptr);
 	Log("Complete create D3D12Dwvice!!!\n");
 
@@ -571,6 +574,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	hr = dxcUtils->CreateDefaultIncludeHandler(&includeHandler);
 	assert(SUCCEEDED(hr));
 
+	//RootSignatureの変更
+	D3D12_DESCRIPTOR_RANGE descriptorRangeForInstancing[1] = {};
+	descriptorRangeForInstancing[0].BaseShaderRegister = 0;	//0から始まる
+	descriptorRangeForInstancing[0].NumDescriptors = 1;	//数は1つ
+	descriptorRangeForInstancing[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; //SRVを使う
+	descriptorRangeForInstancing[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
 	//RootSignature作成
 	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
 	descriptionRootSignature.Flags =
@@ -581,9 +591,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	//CBVを使う
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	//PixelShaderで使う
 	rootParameters[0].Descriptor.ShaderRegister = 0;	//レジスタ番号0とバインド
-	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	//CBVを使う
-	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;	//PixelShaderで使う
-	rootParameters[1].Descriptor.ShaderRegister = 0;	//レジスタ番号0とバインド
+	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;	//DescriptorTableを使う
+	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;	//VertexShaderで使う
+	rootParameters[1].DescriptorTable.pDescriptorRanges = descriptorRangeForInstancing;	//Tableの中身の配列を指定
+	rootParameters[1].DescriptorTable.NumDescriptorRanges =
+		_countof(descriptorRangeForInstancing);	//Tableで利用する数
 	descriptionRootSignature.pParameters = rootParameters;	//ルートパラメータ配列へのポインタ
 	descriptionRootSignature.NumParameters = _countof(rootParameters);	//配列の長さ
 
@@ -874,6 +886,26 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//SRVの生成
 	device->CreateShaderResourceView(textureResource, &srvDesc, textureSrvHandleCPU);
 
+	const uint32_t kNumInstance = 10; //インスタンス数
+	//Instancing用のTransformationMatrixリソースを作る
+	Microsoft::WRL::ComPtr<ID3D12Resource> instancingResource =
+		CreateBufferResource(device, sizeof(TransformationMatrix) * kNumInstance);
+	//書き込めためのアドレスを取得
+	TransformationMatrix* instancingData = nullptr;
+	instancingResource->Map(0, nullptr, reinterpret_cast<void**>(&instancingData));
+	//単位行列を書きこんでおく
+	for (uint32_t index = 0; index < kNumInstance; ++index) {
+		instancingData[index].wvp = MakeIdentity4x4();
+		instancingData[index].world = MakeIdentity4x4();
+	}
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC instancingSrvDesc{};
+	instancingSrvDesc.Format = DXGI_FORMAT_UNKNOWN;
+	instancingSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	instancingSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	instancingSrvDesc.Buffer.FirstElement = 0;
+	instancingSrvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+	instancingSrvDesc.Buffer.NumElements = kNumInstance;
 
 	//ウィンドウの×ボタンが押されるまでループ
 	while (msg.message != WM_QUIT) {
@@ -958,8 +990,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			//TransitionBarrierを張る
 			commandList->ResourceBarrier(1, &barrier);
 
-
-
 			//描画先のRTVとDSVを設定する
 			D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 			commandList->OMSetRenderTargets(1, &rtvHandles[backBufferIndex], false, &dsvHandle);
@@ -1004,7 +1034,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetGraphicsRootConstantBufferView(1, transformationMatrixResourceSprite->GetGPUVirtualAddress());
 
 			//描画!　(DrawCall/ドローコール)
-			commandList->DrawInstanced(6, 1, 0, 0);
+			commandList->DrawInstanced(6, 10, 0, 0);
 
 			//実際のcommandListのImGuiの描画コマンドを積む、デバッグ用のUIなので最後に描画する
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
