@@ -740,9 +740,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//左下
 	vertexDate[0].position = { -0.5f,-0.5f,0.0f,1.0f };
 	vertexDate[0].texcoord = { 0.0f,1.0f };
+
 	//上
 	vertexDate[1].position = { 0.0f,0.5f,0.0f,1.0f };
 	vertexDate[1].texcoord = { 0.5f,0.0f };
+
 	//右下
 	vertexDate[2].position = { 0.5f,-0.5f,0.0f,1.0f };
 	vertexDate[2].texcoord = { 1.0f,1.0f };
@@ -780,14 +782,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//Sprite用の頂点リソースを作る
 	ID3D12Resource* vertexResourceSprite = CreateBufferResource(device, sizeof(VertexDate) * 6);
 
-	//頂点バッファビューを作成する
-	D3D12_VERTEX_BUFFER_VIEW vertexBufferViewSprite{};
-	//リソースの先頭のアドレスから使う
-	vertexBufferViewSprite.BufferLocation = vertexResourceSprite->GetGPUVirtualAddress();
-	//使用するリソースのサイズは頂点6つ分のサイズ
-	vertexBufferViewSprite.SizeInBytes = sizeof(VertexDate) * 6;
-	//1頂点当たりのサイズ
-	vertexBufferViewSprite.StrideInBytes = sizeof(VertexDate);
+	////頂点バッファビューを作成する
+	//D3D12_VERTEX_BUFFER_VIEW vertexBufferViewSprite{};
+	////リソースの先頭のアドレスから使う
+	//vertexBufferViewSprite.BufferLocation = vertexResourceSprite->GetGPUVirtualAddress();
+	////使用するリソースのサイズは頂点6つ分のサイズ
+	//vertexBufferViewSprite.SizeInBytes = sizeof(VertexDate) * 6;
+	////1頂点当たりのサイズ
+	//vertexBufferViewSprite.StrideInBytes = sizeof(VertexDate);
 
 	VertexDate* vertexDataSprit = nullptr;
 	vertexResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&vertexDataSprit));
@@ -1107,7 +1109,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			assert(SUCCEEDED(hr));
 			hr = commandList->Reset(commandAllocator, nullptr);
 			assert(SUCCEEDED(hr));
-
 		}
 
 	}
@@ -1155,7 +1156,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	vertexResourceSprite->Release();
 	transformationMatrixResourceSprite->Release();
-
 
 	//リソースリークチェック
 	IDXGIDebug1* debug;
