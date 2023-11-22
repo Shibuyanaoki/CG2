@@ -733,33 +733,48 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	vertexBufferView.StrideInBytes = sizeof(VertexDate);
 
 	//頂点リソースにデータを書き込む
-	VertexDate* vertexDate = nullptr;
+	VertexDate* vertexData = nullptr;
 	//書き込むためのあどれすを取得
 	vertexResource->Map(0, nullptr,
-		reinterpret_cast<void**>(&vertexDate));
+		reinterpret_cast<void**>(&vertexData));
 	//左下
-	vertexDate[0].position = { -0.5f,-0.5f,0.0f,1.0f };
-	vertexDate[0].texcoord = { 0.0f,1.0f };
+	vertexData[0].position = { -0.5f,-0.5f,0.0f,1.0f };
+	vertexData[0].texcoord = { 0.0f,1.0f };
 
 	//上
-	vertexDate[1].position = { 0.0f,0.5f,0.0f,1.0f };
-	vertexDate[1].texcoord = { 0.5f,0.0f };
+	vertexData[1].position = { -0.5f,0.5f,0.0f,1.0f };
+	vertexData[1].texcoord = { 0.0f,0.0f };
 
 	//右下
-	vertexDate[2].position = { 0.5f,-0.5f,0.0f,1.0f };
-	vertexDate[2].texcoord = { 1.0f,1.0f };
+	vertexData[2].position = { 0.5f,-0.5f,0.0f,1.0f };
+	vertexData[2].texcoord = { 1.0f,1.0f };
 
 	//左下2
-	vertexDate[3].position = { -0.5f,-0.5f,0.5f,1.0f };
-	vertexDate[3].texcoord = { 0.0f,1.0f };
+	vertexData[3].position = { -0.5f,0.5f,0.0f,1.0f };
+	vertexData[3].texcoord = { 0.0f,0.0f };
 
 	//上2
-	vertexDate[4].position = { 0.0f,0.0f,0.0f,1.0f };
-	vertexDate[4].texcoord = { 0.5f,0.0f };
+	vertexData[4].position = { 0.5f,0.5f,0.0f,1.0f };
+	vertexData[4].texcoord = { 1.0f,0.0f };
 
 	//右下2
-	vertexDate[5].position = { 0.5f,-0.5f,-0.5f,1.0f };
-	vertexDate[5].texcoord = { 1.0f,1.0f };
+	vertexData[5].position = { 0.5f,-0.5f,-0.0f,1.0f };
+	vertexData[5].texcoord = { 1.0f,1.0f };
+
+	////1枚目の三角形
+	//vertexData[0].position = { 0.0f,360.0f,0.0f,1.0f };	//左下
+	//vertexData[0].texcoord = { 0.0f,1.0f };
+	//vertexData[1].position = { 0.0f,0.0f,0.0f,1.0f };	//左上
+	//vertexData[1].texcoord = { 0.0f,0.0f };
+	//vertexData[2].position = { 640.0f,360.0f,0.0f,1.0f };	//右下
+	//vertexData[2].texcoord = { 1.0f,1.0f };
+	////2枚目の三角形
+	//vertexData[3].position = { 0.0f,0.0f,0.0f,1.0f };	//左上
+	//vertexData[3].texcoord = { 0.0f,0.0f };
+	//vertexData[4].position = { 640.0f,0.0f,0.0f,1.0f };	//左下
+	//vertexData[4].texcoord = { 1.0f,0.0f };
+	//vertexData[5].position = { 640.0f,360.0f,0.0f,1.0f };	//左下
+	//vertexData[5].texcoord = { 1.0f,1.0f };
 
 	//マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
 	ID3D12Resource* materialResource = CreateBufferResource(device, sizeof(Vector4));
@@ -782,14 +797,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//Sprite用の頂点リソースを作る
 	ID3D12Resource* vertexResourceSprite = CreateBufferResource(device, sizeof(VertexDate) * 6);
 
-	////頂点バッファビューを作成する
-	//D3D12_VERTEX_BUFFER_VIEW vertexBufferViewSprite{};
-	////リソースの先頭のアドレスから使う
-	//vertexBufferViewSprite.BufferLocation = vertexResourceSprite->GetGPUVirtualAddress();
-	////使用するリソースのサイズは頂点6つ分のサイズ
-	//vertexBufferViewSprite.SizeInBytes = sizeof(VertexDate) * 6;
-	////1頂点当たりのサイズ
-	//vertexBufferViewSprite.StrideInBytes = sizeof(VertexDate);
+	//頂点バッファビューを作成する
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferViewSprite{};
+	//リソースの先頭のアドレスから使う
+	vertexBufferViewSprite.BufferLocation = vertexResourceSprite->GetGPUVirtualAddress();
+	//使用するリソースのサイズは頂点6つ分のサイズ
+	vertexBufferViewSprite.SizeInBytes = sizeof(VertexDate) * 6;
+	//1頂点当たりのサイズ
+	vertexBufferViewSprite.StrideInBytes = sizeof(VertexDate);
 
 	VertexDate* vertexDataSprit = nullptr;
 	vertexResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&vertexDataSprit));
