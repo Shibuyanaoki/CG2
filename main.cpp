@@ -937,6 +937,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		instancingData[index].world = worldMatrix;
 	}
 
+	const uint32_t kSubdivision = 12;
+	const uint32_t kNumSphereVertion = kSubdivision * kSubdivision * 6;
+	const float pi = 3.14f;
+
+	//経度分割1つ
+
 	//ウィンドウの×ボタンが押されるまでループ
 	while (msg.message != WM_QUIT) {
 		//windowにメッセージが来てたら最優先で処理させる
