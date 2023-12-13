@@ -1139,6 +1139,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	device->Release();
 	useAdapter->Release();
 	dxgiFactory->Release();
+	instancingResource->Release();
+	
 
 #ifdef _DEBUG
 	debugController->Release();
