@@ -35,7 +35,7 @@ struct Transform {
 
 struct TransformationMatrix {
 	Matrix4x4 wvp;
-	Matrix4x4 world;
+	//Matrix4x4 world;
 };
 
 std::wstring ConvertString(const std::string& str)
@@ -876,7 +876,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ID3D12Resource* depthStencilResouce = CreateDepthStencilTextureResource(device, kClientWidht, kClientHeight);
 
 	//Textyreを読んだ転送する
-	DirectX::ScratchImage mipImages = LoadTexture("resources/uvChecker.png");
+	DirectX::ScratchImage mipImages = LoadTexture("resources/dragon.png");
 	const DirectX::TexMetadata& metadata = mipImages.GetMetadata();
 	ID3D12Resource* textureResource = CreateTextureResource(device, metadata);
 	UploadTextureData(textureResource, mipImages);
@@ -917,7 +917,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//単位行列を書きこんでおく
 	for (uint32_t index = 0; index < kNumInstance; ++index) {
 		instancingData[index].wvp = MakeIdentity4x4();
-		instancingData[index].world = MakeIdentity4x4();
+		//instancingData[index].world = MakeIdentity4x4();
 	}
 
 	const uint32_t desriptorSizeSRV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -945,13 +945,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		transforms[index].translate = { index * 0.1f,index * 0.1f,index * 0.1f };
 	}
 
-	for (uint32_t index = 0; index < kNumInstance; index++) {
-		Matrix4x4 worldMatrix = MakeAffineMatrix(transforms[index].scale, transforms[index].rotate, transforms[index].translate);
-		Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, worldViewProjectionMatrix);
-		instancingData[index].wvp = worldViewProjectionMatrix;
-		instancingData[index].world = worldMatrix;
-	}
-
 	//ウィンドウの×ボタンが押されるまでループ
 	while (msg.message != WM_QUIT) {
 		//windowにメッセージが来てたら最優先で処理させる
@@ -967,14 +960,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			//ゲームの処理
 
-			transform.rotate.y += 0.03f;
+			/*transform.rotate.y += 0.03f;
 			Matrix4x4 worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
 			Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
 			Matrix4x4 viewMatrix = Inverse(cameraMatrix);
 			Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kClientWidht) / float(kClientHeight), 0.1f, 100.0f);
-			Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
-			*wvpData = worldMatrix;
-			*wvpData = worldViewProjectionMatrix;
+			Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));*/
+			//*wvpData = worldMatrix;
+			//*wvpData = worldViewProjectionMatrix;
+
+			for (uint32_t index = 0; index < kNumInstance; index++) {
+				Matrix4x4 worldMatrix = MakeAffineMatrix(transforms[index].scale, transforms[index].rotate, transforms[index].translate);
+				Matrix4x4 cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
+				Matrix4x4 viewMatrix = Inverse(cameraMatrix);
+				Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, float(kClientWidht) / float(kClientHeight), 0.1f, 100.0f);
+				Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
+				instancingData[index].wvp = worldViewProjectionMatrix;
+				//instancingData[index].world = worldMatrix;
+			}
 
 			//Sprite用のWorldViewProjectionMatrixを作る
 			Matrix4x4 worldMatrixSprite = MakeAffineMatrix(transformSprite.scale, transformSprite.rotate, transformSprite.translate);
