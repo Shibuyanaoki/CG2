@@ -733,33 +733,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	vertexBufferView.StrideInBytes = sizeof(VertexDate);
 
 	//頂点リソースにデータを書き込む
-	VertexDate* vertexDate = nullptr;
+	VertexDate* vertexData = nullptr;
 	//書き込むためのあどれすを取得
 	vertexResource->Map(0, nullptr,
-		reinterpret_cast<void**>(&vertexDate));
+		reinterpret_cast<void**>(&vertexData));
 	//左下
-	vertexDate[0].position = { -0.5f,-0.5f,0.0f,1.0f };
-	vertexDate[0].texcoord = { 0.0f,1.0f };
+	vertexData[0].position = { -0.5f,-0.5f,0.0f,1.0f };
+	vertexData[0].texcoord = { 0.0f,1.0f };
 
 	//上
-	vertexDate[1].position = { 0.0f,0.5f,0.0f,1.0f };
-	vertexDate[1].texcoord = { 0.5f,0.0f };
+	vertexData[1].position = { 0.0f,0.5f,0.0f,1.0f };
+	vertexData[1].texcoord = { 0.5f,0.0f };
 
 	//右下
-	vertexDate[2].position = { 0.5f,-0.5f,0.0f,1.0f };
-	vertexDate[2].texcoord = { 1.0f,1.0f };
+	vertexData[2].position = { 0.5f,-0.5f,0.0f,1.0f };
+	vertexData[2].texcoord = { 1.0f,1.0f };
 
 	//左下2
-	vertexDate[3].position = { -0.5f,-0.5f,0.5f,1.0f };
-	vertexDate[3].texcoord = { 0.0f,1.0f };
+	vertexData[3].position = { -0.5f,-0.5f,0.5f,1.0f };
+	vertexData[3].texcoord = { 0.0f,1.0f };
 
 	//上2
-	vertexDate[4].position = { 0.0f,0.0f,0.0f,1.0f };
-	vertexDate[4].texcoord = { 0.5f,0.0f };
+	vertexData[4].position = { 0.0f,0.0f,0.0f,1.0f };
+	vertexData[4].texcoord = { 0.5f,0.0f };
 
 	//右下2
-	vertexDate[5].position = { 0.5f,-0.5f,-0.5f,1.0f };
-	vertexDate[5].texcoord = { 1.0f,1.0f };
+	vertexData[5].position = { 0.5f,-0.5f,-0.5f,1.0f };
+	vertexData[5].texcoord = { 1.0f,1.0f };
 
 	//マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
 	ID3D12Resource* materialResource = CreateBufferResource(device, sizeof(Vector4));
@@ -781,6 +781,37 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//Sprite用の頂点リソースを作る
 	ID3D12Resource* vertexResourceSprite = CreateBufferResource(device, sizeof(VertexDate) * 6);
+
+	const uint32_t kSubdivision = 12;
+	const uint32_t kNumSphereVertices
+	const float pi = 3.14f;
+
+	//経度分割1つ分の角度　φ
+	const float kLonEvery = pi * 2.0f / float(kSubdivision);
+	//緯度分割1つ分の角度 θ
+	const float kLanEvery = pi / float(kSubdivision);
+	//緯度の方向に分割
+	for (latIndex = 0; latIndex < kSubdivision; ++latIndex) {
+		float lat = -pi / 2.0f + kLatEvery * latIndex; //θ
+		//緯度の方向に分割しながら線を描く
+		for (lonIndex = 0; lonIndex < kSubdivision; ++latIndex) {
+			uint32_t start = (latIndex * kSubdivision + lonIndex) * 6;
+			float lon = lonIndex * kLonEvery; //φ
+			//頂点にデータを入力する。基準点a
+			vertexData[start].position.x = cos(lat) * cos(lon);
+			vertexData[start].position.y = sin(lat);
+			vertexData[start].position.z = cos(lat) * sin(lon);
+			vertexData[start].position.w = 1.0f;
+			vertexData[start].texcoord = ;
+
+		}
+	
+	}
+
+		uint32_t startIndex = (latIndex * kSubdivision)
+
+
+
 
 	////頂点バッファビューを作成する
 	//D3D12_VERTEX_BUFFER_VIEW vertexBufferViewSprite{};
