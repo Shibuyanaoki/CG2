@@ -10,6 +10,7 @@
 #include <dxgidebug.h>
 #include <dxcapi.h>
 #include <wrl.h>
+#include <numbers>
 #include "Vector4.h"
 #include "Vector2.h"
 #include "Matrix4x4.h"
@@ -968,11 +969,64 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		instancingData[index].world = worldMatrix;
 	}
 
+	//球体用頂点
+	const float kPi = std::numbers::pi_v<float>;
 	const uint32_t kSubdivision = 12;
-	const uint32_t kNumSphereVertion = kSubdivision * kSubdivision * 6;
-	const float pi = 3.14f;
+	const uint32_t kNumSphereVertices = kSubdivision * kSubdivision * 6;
 
-	//経度分割1つ
+	const float kLonEvery = (2 * kPi) / float(kSubdivision); //経度分割1つ分の角度
+	const float kLatEvery = kPi / float(kSubdivision); //緯度分割1つ分の角度
+
+	VertexDate* vertexData = nullptr;
+	vertexResourceSprite->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
+
+	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
+		float lat = -kPi / 2.0f + kLatEvery * latIndex;
+
+		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
+			uint32_t start = (latIndex * kSubdivision + lonIndex) * 6;
+
+			float lon = lonIndex * kLonEvery;
+
+			// a
+			vertexData[start].position.x = cos(lat) * cos(lon);
+			vertexData[start].position.y = sin(lat);
+			vertexData[start].position.z = cos(lat) * sin(lon);
+			vertexData[start].position.w = 1.0f;
+			vertexData[start].texcoord.x = float(lonIndex) / float(kSubdivision);
+			vertexData[start].texcoord.y = 1.0f - float(latIndex) / float(kSubdivision);
+
+			// b
+			vertexData[start + 1].position.x = cos(lat + kSubdivision) * cos(lon);
+			vertexData[start + 1].position.y = sin(lat + kSubdivision);
+			vertexData[start + 1].position.z = cos(lat + kLatEvery) * sin(lon);
+			vertexData[start + 1].position.w = 1.0f;
+			vertexData[start + 1].texcoord.x = float(lonIndex) / float(kSubdivision);
+			vertexData[start + 1].texcoord.y = 1.0f - float(latIndex + 1) / float(kSubdivision);
+
+			// c
+			vertexData[start + 2].position.x = cos(lat) * cos(lon + kLonEvery);
+			vertexData[start + 2].position.y = sin(lat);
+			vertexData[start + 2].position.z = cos(lat) * sin(lon + kLonEvery);
+			vertexData[start + 2].position.w = 1.0f;
+			vertexData[start + 2].texcoord.x = float(lonIndex + 1) / float(kSubdivision);
+			vertexData[start + 2].texcoord.y = 1.0f - float(latIndex) / float(kSubdivision);
+			vertexData[start + 3] = vertexData[start + 2];
+
+			// b
+			vertexData[start + 4] = vertexData[start + 1];
+
+			// d
+			vertexData[start + 5].position.x = cos(lat + kLatEvery) * cos(lon + kLonEvery);
+			vertexData[start + 5].position.y = sin(lat + kSubdivision);
+			vertexData[start + 5].position.z = cos(lat + kLatEvery) * sin(lon + kLonEvery);
+			vertexData[start + 5].position.w = 1.0f;
+			vertexData[start + 5].texcoord.x = float(lonIndex + 1) / float(kSubdivision);
+			vertexData[start + 5].texcoord.y = 1.0f - float(latIndex + 1) / float(kSubdivision);
+
+		}
+
+	}
 
 	//ウィンドウの×ボタンが押されるまでループ
 	while (msg.message != WM_QUIT) {
@@ -1103,7 +1157,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			commandList->SetGraphicsRootDescriptorTable(1, instancingSrvHandleGPU);
 
 			//描画!　(DrawCall/ドローコール)、KNumInstance(今回は10)だけInstance描画を行う
-			commandList->DrawInstanced(6, kNumInstance, 0, 0);
+			//commandList->DrawInstanced(6, kNumInstance, 0, 0);
+
+			commandList->DrawInstanced(kSubdivision, 1, 0, 0);
 
 			//実際のcommandListのImGuiの描画コマンドを積む、デバッグ用のUIなので最後に描画する
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
