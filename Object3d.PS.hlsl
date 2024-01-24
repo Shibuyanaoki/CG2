@@ -1,4 +1,4 @@
-#include "Object3hlsli"
+#include "Object3d.hlsli"
 
 struct Material{
 	float32_t4 color;

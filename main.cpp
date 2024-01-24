@@ -722,13 +722,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		IID_PPV_ARGS(&graphicsPipelineState));
 	assert(SUCCEEDED(hr));
 
-	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexDate) * 6);
+	const uint32_t kSubdivision = 12;
+
+	const uint32_t kVertexCount = kSubdivision * kSubdivision * 6;//球体頂点数
+
+	ID3D12Resource* vertexResource = CreateBufferResource(device, sizeof(VertexDate) * kVertexCount);
 	//頂点バッファビューを作成する
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 	//リソースの先頭のアドレスから使う
 	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
 	//使用するリソースのサイズは頂点3つ分のサイズ
-	vertexBufferView.SizeInBytes = sizeof(VertexDate) * 6;
+	vertexBufferView.SizeInBytes = sizeof(VertexDate) * kVertexCount;
 	//1頂点当たりのサイズ
 	vertexBufferView.StrideInBytes = sizeof(VertexDate);
 
@@ -939,24 +943,20 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region Sphereの計算
 
-	// 球体用頂点
-	const uint32_t kSubdivision = 12;
-	//const uint32_t kNumSphereVertices;
+	//const uint32_t kSubdivision = 12;
+
+	//const uint32_t kVertexCount = kSubdivision * kSubdivision * 6;//球体頂点数
+
+	//球体用頂点
 	const float kPi = std::numbers::pi_v<float>;
 	const float kLonEvery = (2 * kPi) / float(kSubdivision); //経度分割1つ分の角度
-	const float kLatEvery = kPi / float(kSubdivision); //緯度分割1つ分の角度	
-
+	const float kLatEvery = kPi / float(kSubdivision); //緯度分割1つ分の角度
 	for (uint32_t latIndex = 0; latIndex < kSubdivision; ++latIndex) {
-
 		float lat = -kPi / 2.0f + kLatEvery * latIndex;
-
 		for (uint32_t lonIndex = 0; lonIndex < kSubdivision; ++lonIndex) {
-
 			uint32_t start = (latIndex * kSubdivision + lonIndex) * 6;
-
 			float lon = lonIndex * kLonEvery;
-
-			// a
+			//a
 			vertexData[start].position.x = cos(lat) * cos(lon);
 			vertexData[start].position.y = sin(lat);
 			vertexData[start].position.z = cos(lat) * sin(lon);
@@ -964,15 +964,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			vertexData[start].texcoord.x = float(lonIndex) / float(kSubdivision);
 			vertexData[start].texcoord.y = 1.0f - float(latIndex) / float(kSubdivision);
 
-			// b
+			//b
 			vertexData[start + 1].position.x = cos(lat + kLatEvery) * cos(lon);
-			vertexData[start + 1].position.y = sin(lat);
-			vertexData[start + 1].position.z = cos(lat) * sin(lon);
+			vertexData[start + 1].position.y = sin(lat + kLatEvery);
+			vertexData[start + 1].position.z = cos(lat + kLatEvery) * sin(lon);
 			vertexData[start + 1].position.w = 1.0f;
 			vertexData[start + 1].texcoord.x = float(lonIndex) / float(kSubdivision);
 			vertexData[start + 1].texcoord.y = 1.0f - float(latIndex + 1) / float(kSubdivision);
 
-			// c
+			//c
 			vertexData[start + 2].position.x = cos(lat) * cos(lon + kLonEvery);
 			vertexData[start + 2].position.y = sin(lat);
 			vertexData[start + 2].position.z = cos(lat) * sin(lon + kLonEvery);
@@ -980,13 +980,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			vertexData[start + 2].texcoord.x = float(lonIndex + 1) / float(kSubdivision);
 			vertexData[start + 2].texcoord.y = 1.0f - float(latIndex) / float(kSubdivision);
 
-			// c
+			//c
 			vertexData[start + 3] = vertexData[start + 2];
-
-			// b
+			//b
 			vertexData[start + 4] = vertexData[start + 1];
-
-			// d
+			//d
 			vertexData[start + 5].position.x = cos(lat + kLatEvery) * cos(lon + kLonEvery);
 			vertexData[start + 5].position.y = sin(lat + kLatEvery);
 			vertexData[start + 5].position.z = cos(lat + kLatEvery) * sin(lon + kLonEvery);
@@ -1130,7 +1128,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			//描画!　(DrawCall/ドローコール)、KNumInstance(今回は10)だけInstance描画を行う
 			//commandList->DrawInstanced(6, kNumInstance, 0, 0);
 
-			commandList->DrawInstanced(kSubdivision, 1, 0, 0);
+			commandList->DrawInstanced(kVertexCount, 1, 0, 0);
 
 			//実際のcommandListのImGuiの描画コマンドを積む、デバッグ用のUIなので最後に描画する
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), commandList);
