@@ -36,7 +36,7 @@ struct Transform {
 
 struct TransformationMatrix {
 	Matrix4x4 wvp;
-	Matrix4x4 world;
+	Matrix4x4 World;
 };
 
 struct VertexDate {
@@ -48,6 +48,13 @@ struct VertexDate {
 struct Material {
 	Vector4 color;
 	int32_t enableLighting;
+};
+
+struct DirectionalLight {
+	Vector4 color; //ライトの色
+	Vector3 direction; //ライトの向き
+	float intensity; //輝度
+
 };
 
 std::wstring ConvertString(const std::string& str)
@@ -600,7 +607,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 	//RootParameter作成。PixelShaderのMaterialとVertexShaderのTransform
-	D3D12_ROOT_PARAMETER rootParameters[3] = {};
+	D3D12_ROOT_PARAMETER rootParameters[4] = {};
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	//CBVを使う
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	//PixelShaderで使う
 	rootParameters[0].Descriptor.ShaderRegister = 0;	//レジスタ番号0とバインド
@@ -621,6 +628,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;	//PixelShaderで使う
 	rootParameters[2].DescriptorTable.pDescriptorRanges = descriptorRange;	//Tableの中身の配列を指定
 	rootParameters[2].DescriptorTable.NumDescriptorRanges = _countof(descriptorRange);	//Tableでリ湯尾する数
+
+	//04_03
+	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; //CBVを使う
+	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL; //PixelShaderで使う
+	rootParameters[3].Descriptor.ShaderRegister = 1;
 
 	D3D12_STATIC_SAMPLER_DESC staticSamplers[1] = {};
 	staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;	//パイリニアフィルタ
@@ -783,8 +795,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//書き込むためのアドレスを書き込む
 	materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
 	//今回は赤を書き込んで見る
-	Vector4 color= Vector4(1.0f, 1.0f, 1.0f, 1.0f);
+	Vector4 color = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 	materialData->color = color;
+	materialData->enableLighting = true;
+
 	//*materialData = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	//WVP用のリソースを作る。Matrix4x4 1つ分のサイズを用意する
@@ -919,7 +933,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//単位行列を書きこんでおく
 	for (uint32_t index = 0; index < kNumInstance; ++index) {
 		instancingData[index].wvp = MakeIdentity4x4();
-		instancingData[index].world = MakeIdentity4x4();
+		instancingData[index].World = MakeIdentity4x4();
 	}
 
 	const uint32_t desriptorSizeSRV = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -951,7 +965,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		Matrix4x4 worldMatrix = MakeAffineMatrix(transforms[index].scale, transforms[index].rotate, transforms[index].translate);
 		Matrix4x4 worldViewProjectionMatrix = Multiply(worldMatrix, worldViewProjectionMatrix);
 		instancingData[index].wvp = worldViewProjectionMatrix;
-		instancingData[index].world = worldMatrix;
+		instancingData[index].World = worldMatrix;
 	}
 
 #pragma region Sphereの計算
@@ -982,7 +996,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 			//b
 			vertexData[start + 1].position.x = cos(lat + kLatEvery) * cos(lon);
-			vertexData[start + 1].position.y = si@n(lat + kLatEvery);
+			vertexData[start + 1].position.y = sin(lat + kLatEvery);
 			vertexData[start + 1].position.z = cos(lat + kLatEvery) * sin(lon);
 			vertexData[start + 1].position.w = 1.0f;
 			vertexData[start + 1].texcoord.x = float(lonIndex) / float(kSubdivision);
@@ -1014,6 +1028,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 	}
 
+	//// Sprite用のマテリアルリソースを作る
+	//ID3D12Resource* materualResourceSprite = CreateBufferResource(device, sizeof(Material));
+
+	ID3D12Resource* directionalLightResource = CreateBufferResource(device, sizeof(DirectionalLight));
+	DirectionalLight* directionalLightData = nullptr;
+	directionalLightResource->Map(0, nullptr, reinterpret_cast<void**>(&directionalLightData));
+
+	// デフォルト値はとりあえず以下のようにしておく	
+	directionalLightData->color = { 1.0f,1.0f,1.0f,1.0f };
+	directionalLightData->direction = { 0.0f,-1.0f,0.0f };
+	directionalLightData->intensity = 1.0f;
+
 #pragma endregion
 
 	//ウィンドウの×ボタンが押されるまでループ
@@ -1040,6 +1066,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			*wvpData = worldMatrix;
 			*wvpData = worldViewProjectionMatrix;
 
+
 			//Sprite用のWorldViewProjectionMatrixを作る
 			Matrix4x4 worldMatrixSprite = MakeAffineMatrix(transformSprite.scale, transformSprite.rotate, transformSprite.translate);
 			Matrix4x4 viewMatrixSprite = MakeIdentity4x4();
@@ -1051,27 +1078,27 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			//開発用UIを出す場合はここをゲーム固有の処理に置きかえる
 			ImGui::ShowDemoWindow();
 
-			ImGui::Begin("Debug");
-			float PlayerColor[] =
-			{
-				materialData->x,
-				materialData->y,
-				materialData->z,
-				materialData->w
-			};
+			//ImGui::Begin("Debug");
+			//float PlayerColor[] =
+			//{
+			//	materialData->x,
+			//	materialData->y,
+			//	materialData->z,
+			//	materialData->w
+			//};
 
-			ImGui::SliderFloat4("PlayerColor", PlayerColor, 0.0f, 1.0f);
+			//ImGui::SliderFloat4("PlayerColor", PlayerColor, 0.0f, 1.0f);
 
-			//ImGui::ColorEdit4("BlendMode", &materialData->w);
+			////ImGui::ColorEdit4("BlendMode", &materialData->w);
 
-			materialData->x = PlayerColor[0];
-			materialData->y = PlayerColor[1];
-			materialData->z = PlayerColor[2];
-			materialData->w = PlayerColor[3];
+			//materialData-> = PlayerColor[0];
+			//materialData->y = PlayerColor[1];
+			//materialData->z = PlayerColor[2];
+			//materialData->w = PlayerColor[3];
 
-			ImGui::End();
-			//ImGuiの内部コマンドを生成する
-			ImGui::Render();
+			//ImGui::End();
+			////ImGuiの内部コマンドを生成する
+			//ImGui::Render();
 
 			//描画処理
 
