@@ -1115,26 +1115,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			//開発用UIを出す場合はここをゲーム固有の処理に置きかえる
 			ImGui::ShowDemoWindow();
 
-			//ImGui::Begin("Debug");
-			//float PlayerColor[] =
-			//{
-			//	materialData->x,
-			//	materialData->y,
-			//	materialData->z,
-			//	materialData->w
-			//};
+			ImGui::Begin("Debug");
 
-			//ImGui::SliderFloat4("PlayerColor", PlayerColor, 0.0f, 1.0f);
+			float Light[] = {directionalLightData->direction.x,directionalLightData->direction.y,directionalLightData->direction.z};
 
-			////ImGui::ColorEdit4("BlendMode", &materialData->w);
+			ImGui::SliderFloat3("Light", Light, -10.0f, 10.0f);
 
-			//materialData-> = PlayerColor[0];
-			//materialData->y = PlayerColor[1];
-			//materialData->z = PlayerColor[2];
-			//materialData->w = PlayerColor[3];
+			directionalLightData->direction.x = Light[0];
+			directionalLightData->direction.y = Light[1];
+			directionalLightData->direction.z = Light[2];
 
-			//ImGui::End();
-			////ImGuiの内部コマンドを生成する
+			ImGui::End();
+
+			//ImGuiの内部コマンドを生成する
 			ImGui::Render();
 
 			//描画処理
