@@ -807,7 +807,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector4 color = Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 	materialData->color = color;
 	materialData->enableLighting = true;
-	materialData->shininess = 100;
+	materialData->shininess = 100.0f;
 
 	//マテリアル用のリソースを作る。今回はcolor1つ分のサイズを用意する
 	ID3D12Resource* materialResourceSprite = CreateBufferResource(device, sizeof(Material));
