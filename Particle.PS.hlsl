@@ -2,7 +2,7 @@
 
 struct Material{
 	float32_t4 color;
-    int32_t ebableLighting;
+    //int32_t ebableLighting;
 };
 
 ConstantBuffer<Material>gMaterial : register(b0);
